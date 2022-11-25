@@ -17,4 +17,5 @@ class MyDataset(Dataset):
         img = self.images[index]
         path = os.path.join(self.root, img)
         img = np.array(Image.open(path).convert("RGB"))
+        img = self.transform(img)
         return img
