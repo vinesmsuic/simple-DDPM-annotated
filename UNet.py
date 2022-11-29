@@ -36,12 +36,13 @@ class SimpleBlock(nn.Module):
             self.conv1 = nn.Conv2d(in_channel, out_channel, 3, padding=1)
             self.transform = nn.Conv2d(out_channel, out_channel, 4, 2, 1)
         self.conv2 = nn.Conv2d(out_channel, out_channel, 3, padding=1)
-        self.bnorm = nn.BatchNorm2d(out_channel)
+        self.bnorm1 = nn.BatchNorm2d(out_channel)
+        self.bnorm2 = nn.BatchNorm2d(out_channel)
         self.relu  = nn.ReLU()
         
     def forward(self, x, timestep):
         # First Conv
-        h = self.bnorm(self.relu(self.conv1(x)))
+        h = self.bnorm1(self.relu(self.conv1(x)))
         # Time embedding
         time_emb = self.relu(self.time_mlp(timestep))
         # Extend last 2 dimensions
@@ -49,7 +50,7 @@ class SimpleBlock(nn.Module):
         # Add time channel
         h = h + time_emb
         # Second Conv
-        h = self.bnorm(self.relu(self.conv2(h)))
+        h = self.bnorm2(self.relu(self.conv2(h)))
         # Down or Upsample
         return self.transform(h)
 
@@ -60,16 +61,15 @@ class SimpleBlock(nn.Module):
 # Note that the output shape of UNet should be the same as input shape
 #========================================================
 class SimpleUNet(nn.Module):
-    def __init__(self, dim=64, channels=3, dim_mults=(1,2,4,8), time_emb_dim=32) -> None:
+    def __init__(self, dim=64, channels=3, dim_mults=(1,2,4,8,16), time_emb_dim=32) -> None:
         super().__init__()
 
         # You can customize the time embedding mlp layers
         self.time_mlp = nn.Sequential(
             SinusoidalPositionEmbeddings(time_emb_dim), # (B,) => (B, 32)
             nn.Linear(time_emb_dim, time_emb_dim), # (B, 32) => (B, 32)
-            nn.GELU(),
-            nn.Linear(time_emb_dim, time_emb_dim), # (B, 32) => (B, 32)
-        ) 
+            nn.ReLU()
+        )
 
         # Initial projection (modified to use a smaller kernel)
         self.init_proj = nn.Conv2d(channels, dim * dim_mults[0], kernel_size=3, stride=1, padding=1) # (B, 3, 64, 64) => (B, 64, 64, 64)
@@ -98,19 +98,21 @@ class SimpleUNet(nn.Module):
         residual_inputs = [] # List for storing residuals
         for down in self.downs:
             x = down(x, t)
-            residual_inputs.append(x)
+            residual_inputs.append(x) # store residual for each down block
         for up in self.ups:
             residual_x = residual_inputs.pop() # pop means pull out the last item from the list
-            # Add residual x as additional channels
-            x = torch.cat((x, residual_x), dim=1)           
+            x = torch.cat((x, residual_x), dim=1) # Add residual x as additional channels
             x = up(x, t)
         return self.last(x)
 
+
+#==========================================================================
 if __name__ == "__main__":
 
+    # Demo usage of the code
     def test_SimpleUNet():
         batch_size, img_channel, img_width, img_height = 1, 3, 64, 64
-        timesteps = 250
+        timesteps = 1000
         x = torch.randn((batch_size, img_channel, img_width, img_height)).to("cuda")
         t = torch.randint(0, timesteps, (batch_size,)).to("cuda") # Generate a timestep according to the batch size
         print("timestep: ", t)
@@ -128,7 +130,7 @@ if __name__ == "__main__":
     def test_SinusoidalPositionEmbeddings():
         pos_emb = SinusoidalPositionEmbeddings(32)
         batch_size = 1
-        timesteps = 250
+        timesteps = 1000
         t = torch.randint(0, timesteps, (batch_size,)).to("cuda") # Generate a timestep according to the batch size
         emb = pos_emb(t)
         print("emb.shape: ", emb.shape)
