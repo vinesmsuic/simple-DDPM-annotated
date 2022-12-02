@@ -57,3 +57,5 @@ optional arguments:
                         seed number. Default is 42 for reproducible result
   -d DEST, --dest DEST  Destination folder path for saving results.
 ```
+![epoch_495](https://user-images.githubusercontent.com/77888770/205251258-acb6659b-7e92-48a4-9b6f-2ff902353b3d.png)
+

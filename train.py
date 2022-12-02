@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.optim import Adam
-from torchvision import transforms 
+from torchvision import transforms
 import argparse
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image, make_grid
@@ -16,7 +16,7 @@ from utils import seed_everything
 
 def parser():
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument('-s',"--source",required=True,
+    parser.add_argument('-s', "--source", required=True,
                         help="filepath to your dataset image folder.")
     parser.add_argument('-b', "--batch_size", type=int, default=256,
                         help="batch size.")
@@ -28,27 +28,35 @@ def parser():
                         help="epochs. 500 is enough to make a clear images")
     parser.add_argument('-sd', "--seed", type=int, default=42,
                         help="seed number. Default is 42 for reproducible result")
-    parser.add_argument('-d', "--dest", type=str, default= "log",
+    parser.add_argument('-d', "--dest", type=str, default="log",
                         help="Destination folder path for saving results.")
+    parser.add_argument('-l', "--loss", type=str, default="MSE",
+                        help="Use of loss function, either 'l1' or 'MSE' ")
     return parser.parse_args()
+
 
 def get_transform(imsize):
     data_transforms = transforms.Compose([
-			transforms.Resize(imsize),
-			transforms.CenterCrop(imsize),
-            transforms.RandomHorizontalFlip(),
-			transforms.ToTensor(), # turn from Numpy array HWC => tensor CHW, divide by 255
-			transforms.Lambda(lambda t: (t * 2) - 1), # Scale between [-1, 1]
-		])
+        transforms.Resize(imsize),
+        transforms.CenterCrop(imsize),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),  # turn from Numpy array HWC => tensor CHW, divide by 255
+        transforms.Lambda(lambda t: (t * 2) - 1),  # Scale between [-1, 1]
+    ])
     return data_transforms
+
 
 def main(args):
     seed_everything(args.seed)
     transform = get_transform(args.imsize)
     timesteps = args.timesteps
+    if args.loss == 'MSE':
+        criterion = nn.MSELoss()
+    else:
+        criterion = nn.L1Loss()
     ddpm = DDPM(eps_model=SimpleUNet(),
                 timesteps=timesteps,
-                criterion=nn.L1Loss())
+                criterion=criterion)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ddpm.to(device)
     optimizer = Adam(ddpm.parameters(), lr=0.001)
@@ -72,13 +80,14 @@ def main(args):
             # Cal Loss
             loss = ddpm.get_loss(batch_imgs, t)
             loss.backward()
-            
+
             step += 1
             print(f"Epoch {epoch} | step {step:03d} Loss: {loss.item()} ")
 
             optimizer.step()
 
-        if epoch % 5 == 0:
+        # Save Every 5 epochs and last epoch
+        if epoch % 5 == 0 or epoch % epochs == 1:
             # Visualize training result
             ddpm.eval()
             with torch.no_grad():
