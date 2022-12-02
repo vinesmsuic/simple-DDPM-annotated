@@ -30,6 +30,8 @@ def parser():
                         help="seed number. Default is 42 for reproducible result")
     parser.add_argument('-d', "--dest", type=str, default="log",
                         help="Destination folder path for saving results.")
+    parser.add_argument('-l', "--loss", type=str, default="MSE",
+                        help="Use of loss function, either 'l1' or 'MSE' ")
     return parser.parse_args()
 
 
@@ -48,9 +50,13 @@ def main(args):
     seed_everything(args.seed)
     transform = get_transform(args.imsize)
     timesteps = args.timesteps
+    if args.loss == 'MSE':
+        criterion = nn.MSELoss()
+    else:
+        criterion = nn.L1Loss()
     ddpm = DDPM(eps_model=SimpleUNet(),
                 timesteps=timesteps,
-                criterion=nn.L1Loss())  #nn.MSELoss()) nn.L1Loss())
+                criterion=criterion)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ddpm.to(device)
     optimizer = Adam(ddpm.parameters(), lr=0.001)
@@ -80,7 +86,8 @@ def main(args):
 
             optimizer.step()
 
-        if epoch % 5 == 0 or epoch % epochs == 1:   #Every 5 epochs and last epoch
+        # Save Every 5 epochs and last epoch
+        if epoch % 5 == 0 or epoch % epochs == 1:
             # Visualize training result
             ddpm.eval()
             with torch.no_grad():
