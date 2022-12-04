@@ -2,6 +2,24 @@
 
 A simplified DDPM implementation for educational purpose.
 
+## Example
+
+environment.yaml is provided for conda users to setup the conda environment.
+```shell
+conda env create -f environment.yaml
+conda activate ddpm_simple
+```
+
+The example dataset can be downloaded using gdown:
+```shell
+gdown https://drive.google.com/uc?id=1qp9hxwksxpinKKTiHFtMIrQDeWcqnuXm
+unzip catsfaces_64x64.zip
+```
+
+Result after training for 495 epochs using MSE loss:
+<p align="center">
+  <img width="300" height="300" src="https://user-images.githubusercontent.com/77888770/205251258-acb6659b-7e92-48a4-9b6f-2ff902353b3d.png">
+</p>
 
 ## Repo Structure
 
@@ -16,15 +34,21 @@ A simplified DDPM implementation for educational purpose.
 └── utils.py # seeding function and misc. stuffs.
 ```
 
+
 ### Train
 
 ```shell
-usage: train.py [-h] -s SOURCE [-b BATCH_SIZE] [-ims IMSIZE] [-T TIMESTEPS] [-ep EPOCH] [-sd SEED] [-d DEST]
+usage: train.py [-h] -s SOURCE [-b BATCH_SIZE]
+                [-ims IMSIZE] [-T TIMESTEPS]
+                [-ep EPOCH] [-sd SEED] [-d DEST]        
+                [-l LOSS]
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, --help            show this help message and      
+                        exit
   -s SOURCE, --source SOURCE
-                        filepath to your dataset image folder.
+                        filepath to your dataset image  
+                        folder.
   -b BATCH_SIZE, --batch_size BATCH_SIZE
                         batch size.
   -ims IMSIZE, --imsize IMSIZE
@@ -32,10 +56,15 @@ optional arguments:
   -T TIMESTEPS, --timesteps TIMESTEPS
                         timesteps.
   -ep EPOCH, --epoch EPOCH
-                        epochs. 500 is enough to make a clear images
+                        epochs. 500 is enough to make   
+                        a clear images
   -sd SEED, --seed SEED
-                        seed number. Default is 42 for reproducible result
-  -d DEST, --dest DEST  Destination folder path for saving results.
+                        seed number. Default is 42 for
+                        reproducible result
+  -d DEST, --dest DEST  Destination folder path for
+                        saving results.
+  -l LOSS, --loss LOSS  Use of loss function, either
+                        'l1' or 'MSE'
 ```
 
 
@@ -57,5 +86,5 @@ optional arguments:
                         seed number. Default is 42 for reproducible result
   -d DEST, --dest DEST  Destination folder path for saving results.
 ```
-![epoch_495](https://user-images.githubusercontent.com/77888770/205251258-acb6659b-7e92-48a4-9b6f-2ff902353b3d.png)
+
 
